@@ -98,7 +98,6 @@ for line in infile.readlines():
 		byte2 = 0x65
 		outfile.write(bytes([byte1,byte2]))
 
-		
 # Close files
 infile.close()
 outfile.close()
