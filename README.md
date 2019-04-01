@@ -12,10 +12,15 @@ Opcodes and Usage:
 
 Hex    C8sem Opcode  Explanation and Usage
 0NNN   NOP           Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
+
 00E0   CLR           Clears the screen.
+
 00EE   RET           Returns from a subroutine.
+
 1NNN   JMP nnn       Jumps to address NNN.
+
 2NNN   CALL nnn      Calls subroutine at NNN.
+
 3XNN   SKIPE x,nn    Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
 4XNN   SKIPNE x,nn   Skips the next instruction if VX doesn't equal NN. (Usually the next instruction is a jump to skip a code block)
 5XY0   SKIPE x,y     Skips the next instruction if VX equals VY. (Usually the next instruction is a jump to skip a code block)
@@ -27,9 +32,9 @@ Hex    C8sem Opcode  Explanation and Usage
 8XY3   XOR x,y   Sets VX to VX xor VY.
 8XY4   ADDC x,y   Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
 8XY5   VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
-8XY6   SHR x   Stores the least significant bit of VX in VF and then shifts VX to the right by 1.[2]
+8XY6   SHR x   Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
 8XY7   Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
-8XYE   SHL x   Stores the most significant bit of VX in VF and then shifts VX to the left by 1.[3]
+8XYE   SHL x   Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
 9XY0   SKIPNE x,y   Skips the next instruction if VX doesn't equal VY. (Usually the next instruction is a jump to skip a code block)
 ANNN   SETI nnn   Sets I to the address NNN.
 BNNN   JMPV0 nnn   Jumps to the address NNN plus V0.
@@ -43,7 +48,7 @@ FX07      Sets VX to the value of the delay timer.
 FX0A   GETKEY x   A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
 FX15      Sets the delay timer to VX.
 FX18      Sets the sound timer to VX.
-FX1E      Adds VX to I.[4]
+FX1E      Adds VX to I.
 FX29   SPRITE x   Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
 FX33   BCD x   Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at 
 I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at 
