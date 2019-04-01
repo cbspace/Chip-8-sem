@@ -40,13 +40,13 @@ Hex - C8sem Opcode - Explanation and Usage
 
 8XY3 - XOR x,y - Sets VX to VX xor VY.
 
-8XY4 - ADDC x,y - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
+8XY4 - ADD x,y - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
 
-8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+8XY5 - SUBXY x,y - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
 
 8XY6 - SHR x - Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
 
-8XY7 - Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+8XY7 - SUBYX x,y - Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
 
 8XYE - SHL x - Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
 
@@ -66,15 +66,15 @@ EX9E - SKEYP x - Skips the next instruction if the key stored in VX is pressed. 
 
 EXA1 - SKEYNP x - Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
 
-FX07 - Sets VX to the value of the delay timer.
+FX07 - GETTIM x - Sets VX to the value of the delay timer.
 
 FX0A - GETKEY x - A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
 
-FX15 - Sets the delay timer to VX.
+FX15 - SETTIM x - Sets the delay timer to VX.
 
-FX18 - Sets the sound timer to VX.
+FX18 - SOUND x - Sets the sound timer to VX.
 
-FX1E - Adds VX to I.
+FX1E - ADDI x - Adds VX to I.
 
 FX29 - SPRITE x - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
 
