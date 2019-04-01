@@ -11,11 +11,11 @@ Notes:
 Opcodes and Usage: 
 
 Hex    C8sem Opcode  Explanation and Usage
-0NNN   NOP           Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
+0NNN	NOP           Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
 
-00E0   CLR           Clears the screen.
+00E0	CLR           Clears the screen.
 
-00EE   RET           Returns from a subroutine.
+00EE	RET           Returns from a subroutine.
 
 1NNN   JMP nnn       Jumps to address NNN.
 
