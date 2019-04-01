@@ -54,7 +54,7 @@ Hex - C8sem Opcode - Explanation and Usage
 
 ANNN - SETI nnn - Sets I to the address NNN.
 
-BNNN - JMPV0 nnn - Jumps to the address NNN plus V0.
+BNNN - JMPV nnn - Jumps to the address NNN plus V0.
 
 CXNN - RAND x,nn - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
 
