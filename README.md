@@ -8,7 +8,7 @@ Notes:
 2. The program currently only supports the use of hex integers. In the future decimal values will be supported.
 3. Currently there is no support for address labels.
 
-Opcodes and Usage:
+Opcodes and Usage: 
 
 Hex	C8sem Opcode	Explanation and Usage
 0NNN	NOP	Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
