@@ -10,17 +10,17 @@ Notes:
 
 Opcodes and Usage: 
 
-Hex    C8sem Opcode  Explanation and Usage
+Hex - C8sem Opcode - Explanation and Usage
 
-0NNN	NOP - Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
+0NNN - NOP - Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
 
-00E0	CLR - Clears the screen.
+00E0 - CLR - Clears the screen.
 
-00EE	RET - Returns from a subroutine.
+00EE - RET - Returns from a subroutine.
 
-1NNN   JMP nnn       Jumps to address NNN.
+1NNN - JMP nnn - Jumps to address NNN.
 
-2NNN   CALL nnn      Calls subroutine at NNN.
+2NNN - CALL nnn - Calls subroutine at NNN.
 
 3XNN   SKIPE x,nn    Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
 
