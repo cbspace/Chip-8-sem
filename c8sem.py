@@ -13,7 +13,7 @@
 # Loop through used labels and insert instruction with label address
 # If there is a label with no address an error is raised
 
-CONST_VERSION = 1.2
+CONST_VERSION = 1.3
 
 import sys
 
@@ -81,6 +81,18 @@ def processInteger(number):
 			return int(number)
 	elif number[0] == '#':			# Hex number detected
 		if int(number[1:], 16) < 0x100:
+			return int(number[1:], 16)
+	else:
+		printError("Invalid integer \'" + number + "\'")
+		return -1
+		
+# Temp used for dw instruction
+def processInteger2(number):
+	if number.isdecimal() == True:	# Decimal number detected
+		if int(number) < 0x10000:
+			return int(number)
+	elif number[0] == '#':			# Hex number detected
+		if int(number[1:], 16) < 0x10000:
 			return int(number[1:], 16)
 	else:
 		printError("Invalid integer \'" + number + "\'")
@@ -160,6 +172,9 @@ line_number = 0
 # Integer used to store address (begins at 0x200)
 address = 0x200
 
+# Count number of errors
+error_count = 0
+
 # Dictionary used to store label names and addresses
 labels = {}
 
@@ -171,9 +186,8 @@ jump_table = []
 filename_in = str(sys.argv[1])
 filename_out = str(sys.argv[2])
 
-# Open input file readonly, output file for binary writing
+# Open input file readonly
 infile = open(filename_in, 'r')
-outfile = open(filename_out, 'wb', buffering=0)
 
 # --------------------------------- Program ----------------------------------
 
@@ -222,8 +236,8 @@ for line in infile.readlines():
 	
 	# Process the instruction
 	if instruction == 'dw':		# dw nnnn - Define word - Writes 2 bytes to hex file
-		byte1 = int(params[0],16) >> 8
-		byte2 = int(params[0],16) & 0xFF
+		byte1 = processInteger2(params[0]) >> 8
+		byte2 = processInteger2(params[0]) & 0xFF
 		writeIns(byte1, byte2)
 	elif instruction == 'sys':	# sys - Not used as yet, nnn is ignored - 0NNN
 		byte1 = 0x00
@@ -268,26 +282,26 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 	elif instruction == 'se':	# There are 2 different instructions (se vx,vy and se vx,nn)
 		if params[1][0] == 'v': # se vx, vy - Skip next instruction if vx equals vy - 5XY0	
-			vxreg = int(params[0].strip('v'))
-			vyreg = int(params[1].strip('v'))
+			vxreg = int(params[0].strip('v'),16)
+			vyreg = int(params[1].strip('v'),16)
 			byte1 = 0x50 + vxreg
 			byte2 = (vyreg << 4) + 0x00
 			writeIns(byte1, byte2)
 		else:	# se vx, nn - Skip next instruction if vx equals nn - 3XNN
-			vreg = int(params[0].strip('v'))
+			vreg = int(params[0].strip('v'),16)
 			nn = processInteger(params[1])
 			byte1 = 0x30 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
 	elif instruction == 'sne':	# There are 2 different instructions (sne vx,vy and sne vx,nn)
 		if params[1][0] == 'v': # sne vx, vy - Skip next instruction if vx does not equal vy - 9XY0
-			vxreg = int(params[0].strip('v'))
-			vyreg = int(params[1].strip('v'))
+			vxreg = int(params[0].strip('v'),16)
+			vyreg = int(params[1].strip('v'),16)
 			byte1 = 0x90 + vxreg
 			byte2 = (vyreg << 4) + 0x00
 			writeIns(byte1, byte2)
 		else:	# sne vx, nn - Skip next instruction if vx does not equal nn - 4XNN
-			vreg = int(params[0].strip('v'))
+			vreg = int(params[0].strip('v'),16)
 			nn = processInteger(params[1])
 			byte1 = 0x40 + vreg
 			byte2 = nn
@@ -307,42 +321,57 @@ for line in infile.readlines():
 								# ST - set sound timer value
 								# 	ld ST, Vx - Set sound timer value set to value in Vx - FX18
 								# DT - set or load delay timer value		
-								#	ld Vx, ST - Get delay timer value and store in Vx - FX07
+								#	ld Vx, DT - Get delay timer value and store in Vx - FX07
 								#	ld DT, Vx - Set delay timer to value in Vx - FX15	
 
 		if params[0][0] == 'v' and params[1][0] == 'v':	 # ld Vx, Vy - Sets Vx to value in Vy - 8XY0
-			vxreg = int(params[0].strip('v'))
-			vyreg = int(params[1].strip('v'))
+			vxreg = int(params[0].strip('v'),16)
+			vyreg = int(params[1].strip('v'),16)
 			byte1 = 0x80 + vxreg
 			byte2 = (vyreg << 4) + 0x00
 			writeIns(byte1, byte2)
 		elif params[0][0] == 'v' and params[1] == '[i]': # ld Vx, [I] - Read data from address I to I + x in V0 to Vx - FX65
-			vreg = int(params[0].strip('v'))
+			vreg = int(params[0].strip('v'),16)
 			byte1 = 0xF0 + vreg
 			byte2 = 0x65
 			writeIns(byte1, byte2)
+		elif params[0][0] == 'v' and params[1] == 'dt':	# ld Vx, DT - Get delay timer value and store in Vx - FX07
+			vreg = int(params[0].strip('v'),16)
+			byte1 = 0xF0 + vreg
+			byte2 = 0x07
+			writeIns(byte1, byte2)
 		elif params[0][0] == 'v' and params[1][0] != 'v': # ld Vx, nn - Sets Vx to nn - 6XNN
-			vreg = int(params[0].strip('v'))
+			vreg = int(params[0].strip('v'),16)
 			nn = processInteger(params[1])
 			byte1 = 0x60 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
-		elif params[0][0] == 'f' and params[1][0] == 'v': # ld F, Vx - Set I to memory address of sprite for character in Vx - FX29
-			vreg = int(params[1].strip('v'))
+		elif params[0] == 'dt' and params[1][0] == 'v':	# ld DT, Vx - Set delay timer to value in Vx - FX15
+			vreg = int(params[1].strip('v'),16)
+			byte1 = 0xF0 + vreg
+			byte2 = 0x15
+			writeIns(byte1, byte2)
+		elif params[0] == 'f' and params[1][0] == 'v': # ld F, Vx - Set I to memory address of sprite for character in Vx - FX29
+			vreg = int(params[1].strip('v'),16)
 			byte1 = 0xF0 + vreg
 			byte2 = 0x29
 			writeIns(byte1, byte2)
-		elif params[0][0] == 'b' and params[1][0] == 'v':	# ld B, Vx - Store BCD representation of Vx in I, I+1, I+2 - FX33
-			vreg = int(params[1].strip('v'))
+		elif params[0] == 'b' and params[1][0] == 'v':	# ld B, Vx - Store BCD representation of Vx in I, I+1, I+2 - FX33
+			vreg = int(params[1].strip('v'),16)
 			byte1 = 0xF0 + vreg
 			byte2 = 0x33
 			writeIns(byte1, byte2)
+		elif params[0] == 'st' and params[1][0] == 'v':	# ld ST, Vx - Set sound timer value set to value in Vx - FX18
+			vreg = int(params[1].strip('v'),16)
+			byte1 = 0xF0 + vreg
+			byte2 = 0x18
+			writeIns(byte1, byte2)	
 		elif params[0] == '[i]' and params[1][0] == 'v':	# ld [I], vx - Store data from V0 to Vx at address I to I + x - FX55
-			vreg = int(params[1].strip('v'))
+			vreg = int(params[1].strip('v'),16)
 			byte1 = 0xF0 + vreg
 			byte2 = 0x55
 			writeIns(byte1, byte2)
-		elif params[0][0] == 'i' and params[1][0] != 'v':	# seti nnn - Set i to nnn - ANNN
+		elif params[0] == 'i' and params[1][0] != 'v':	# seti nnn - Set i to nnn - ANNN
 			nnn = process_address(params[1],'seti')
 			if nnn == -1: # Error
 				printError("Invalid address or label")
@@ -354,88 +383,73 @@ for line in infile.readlines():
 				byte1 = 0xA0 + (nnn >> 8)
 				byte2 = nnn & 0xFF
 				writeIns(byte1, byte2)
-#	elif instruction == 'gettim':	# gettim vx - Timer value is stored in vx - FX07
-#		vreg = int(params[0].strip('v'))
-#		byte1 = 0xF0 + vreg
-#		byte2 = 0x07
-#		writeIns(byte1, byte2)
-#	elif instruction == 'sound':	# sound vx - Set sound timer value set to value in vx - FX18
-#		vreg = int(params[0].strip('v'))
-#		byte1 = 0xF0 + vreg
-#		byte2 = 0x18
-#		writeIns(byte1, byte2)	
-#	elif instruction == 'settim':	# settim vx - Timer value set to value in vx - FX15
-#		vreg = int(params[0].strip('v'))
-#		byte1 = 0xF0 + vreg
-#		byte2 = 0x15
-#		writeIns(byte1, byte2)
 	elif instruction == 'add':	# There are 2 different instructions (add vx,vy and add vx,nn)	
 		if params[1][0] == 'v':	# add vx, vy - Vx = vx + vy. vf = carry flag - 8XY4
-			vxreg = int(params[0].strip('v'))
-			vyreg = int(params[1].strip('v'))
+			vxreg = int(params[0].strip('v'),16)
+			vyreg = int(params[1].strip('v'),16)
 			byte1 = 0x80 + vxreg
 			byte2 = (vyreg << 4) + 0x04
 			writeIns(byte1, byte2)
 		else:	# add vx, nn - Add nn to vx - 7XNN
-			vreg = int(params[0].strip('v'))
+			vreg = int(params[0].strip('v'),16)
 			nn = processInteger(params[1])
 			byte1 = 0x70 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
 #	elif instruction == 'add':	# add I, Vx - Increment Vx by I - FX1E
-#		vreg = int(params[0].strip('v'))
+#		vreg = int(params[0].strip('v'),16)
 #		byte1 = 0xF0 + vreg
 #		byte2 = 0x1E
 #		writeIns(byte1, byte2)	
 	elif instruction == 'or':	# or vx, vy - vx = vx or vy - 8XY1
-		vxreg = int(params[0].strip('v'))
-		vyreg = int(params[1].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
+		vyreg = int(params[1].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = (vyreg << 4) + 0x01
 		writeIns(byte1, byte2)
 	elif instruction == 'and':	# and vx, vy - vx = vx & vy - 8XY2
-		vxreg = int(params[0].strip('v'))
-		vyreg = int(params[1].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
+		vyreg = int(params[1].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = (vyreg << 4) + 0x02
 		writeIns(byte1, byte2)
 	elif instruction == 'xor':	# xor vx, vy - vx = vx or vy - 8XY3
-		vxreg = int(params[0].strip('v'))
-		vyreg = int(params[1].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
+		vyreg = int(params[1].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = (vyreg << 4) + 0x03
 		writeIns(byte1, byte2)
 	elif instruction == 'sub':	# sub vx, vy : vx = vx - vy - 8XY5
-		vxreg = int(params[0].strip('v'))
-		vyreg = int(params[1].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
+		vyreg = int(params[1].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = (vyreg << 4) + 0x05
 		writeIns(byte1, byte2)
 	elif instruction == 'shr':	# shr vx - Shift vx right by 1 and store result in vx - 8XZ6
-		vxreg = int(params[0].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = 0x06
 		writeIns(byte1, byte2)
 	elif instruction == 'subn':	# subn vx, vy : vx = vy - vx - 8XY7
-		vxreg = int(params[0].strip('v'))
-		vyreg = int(params[1].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
+		vyreg = int(params[1].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = (vyreg << 4) + 0x07
 		writeIns(byte1, byte2)
 	elif instruction == 'shl':	# shl vx - Shift vx left by 1 and store result in vx - 8XZE
-		vxreg = int(params[0].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
 		byte1 = 0x80 + vxreg
 		byte2 = 0x0E
 		writeIns(byte1, byte2)
 	elif instruction == 'rnd':	# rnd vx, nn - Set vx to random number anded with nn - CXNN
-		vreg = int(params[0].strip('v'))
+		vreg = int(params[0].strip('v'),16)
 		nn = processInteger(params[1])
 		byte1 = 0xC0 + vreg
 		byte2 = nn
 		writeIns(byte1, byte2)
 	elif instruction == 'drw':	# drw vx, vy, n - Draw sprite at location vx, vy with width of 8 and height of n - DXYN
-		vxreg = int(params[0].strip('v'))
-		vyreg = int(params[1].strip('v'))
+		vxreg = int(params[0].strip('v'),16)
+		vyreg = int(params[1].strip('v'),16)
 		n = params[2]
 		if n.isdecimal() == True:	# Decimal number detected
 			n = int(n)
@@ -447,17 +461,17 @@ for line in infile.readlines():
 		byte2 = (vyreg << 4) + n
 		writeIns(byte1, byte2)
 	elif instruction == 'skp':	# skp vx - Skips next instruction if key in vx is pressed - EX9E
-		vreg = int(params[0].strip('v'))
+		vreg = int(params[0].strip('v'),16)
 		byte1 = 0xE0 + vreg
 		byte2 = 0x9E
 		writeIns(byte1, byte2)
 	elif instruction == 'wkp':	# wkp vx - Wait for a key press and store key value in vx - FX0A
-		vreg = int(params[0].strip('v'))
+		vreg = int(params[0].strip('v'),16)
 		byte1 = 0xF0 + vreg
 		byte2 = 0x0A
 		writeIns(byte1, byte2)	
 	elif instruction == 'sknp':	# sknp vx - Skips next instruction if key in vx is not pressed - EXA1
-		vreg = int(params[0].strip('v'))
+		vreg = int(params[0].strip('v'),16)
 		byte1 = 0xE0 + vreg
 		byte2 = 0xA1
 		writeIns(byte1, byte2)
@@ -465,12 +479,20 @@ for line in infile.readlines():
 # Fill in the jump instructions with associated label addresses
 fillJumps()
 
-# Write to file
-for x in range(0,len(rom)-1,2):
-	writeBytes(rom[x],rom[x+1])
+# Assembly is successful
+if error_count == 0:
+	# Open output file for binary writing
+	outfile = open(filename_out, 'wb', buffering=0)
 
-# We are done!
-print("\tAssembly complete")
+	# Write to file
+	for x in range(0,len(rom)-1,2):
+		writeBytes(rom[x],rom[x+1])
+
+	# We are done!
+	print("\tAssembly complete")
+else:
+	# Errors occured so 
+	print("\t" + str(error_count) + " error(s) occurred")
 
 # Close files
 infile.close()
