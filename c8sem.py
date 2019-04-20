@@ -13,7 +13,7 @@
 # Loop through used labels and insert instruction with label address
 # If there is a label with no address an error is raised
 
-CONST_VERSION = 1.3
+CONST_VERSION = 1.4
 
 import sys
 
@@ -71,32 +71,57 @@ def labelValid(label_name):
 		return False	
 	return
 
-# Input is a string that is a hex or decimal integer (0-255)
-# Hex numbers begin with # and decimal is digits only
+# Input - number(str): String that is a hex, binary or decimal integer
+# bytes (int): size of integer in bytes 
+# Hex numbers begin with #, binary begins with $ and decimal is digits only
 # return value is integer value of input string
 # returns -1 on error
-def processInteger(number):
+def processNumber(number,bytes):
 	if number.isdecimal() == True:	# Decimal number detected
-		if int(number) < 0x100:
+		if int(number) < 2**(bytes*8):
 			return int(number)
 	elif number[0] == '#':			# Hex number detected
-		if int(number[1:], 16) < 0x100:
+		if int(number[1:], 16) < 2**(bytes*8):
 			return int(number[1:], 16)
+	elif number[0] == '$':			# Binary number detected
+		binary_string = number[1:].replace('.','0')		# replace '.'s with zeros
+		try:
+			binary_integer = int(binary_string,2)
+		except:
+			printError("Invalid binary representation (only 1,0 and . allowed)")		
+			return -1
+		if binary_integer < 2**(bytes*8):
+			return binary_integer
 	else:
 		printError("Invalid integer \'" + number + "\'")
 		return -1
 		
+# Input is a string that is a hex or decimal integer (0-255)
+# Hex numbers begin with # and decimal is digits only
+# return value is integer value of input string
+# returns -1 on error
+# def processNumber(number):
+	# if number.isdecimal() == True:	# Decimal number detected
+		# if int(number) < 0x100:
+			# return int(number)
+	# elif number[0] == '#':			# Hex number detected
+		# if int(number[1:], 16) < 0x100:
+			# return int(number[1:], 16)
+	# else:
+		# printError("Invalid integer \'" + number + "\'")
+		# return -1
+		
 # Temp used for dw instruction
-def processInteger2(number):
-	if number.isdecimal() == True:	# Decimal number detected
-		if int(number) < 0x10000:
-			return int(number)
-	elif number[0] == '#':			# Hex number detected
-		if int(number[1:], 16) < 0x10000:
-			return int(number[1:], 16)
-	else:
-		printError("Invalid integer \'" + number + "\'")
-		return -1
+# def processNumber2(number):
+	# if number.isdecimal() == True:	# Decimal number detected
+		# if int(number) < 0x10000:
+			# return int(number)
+	# elif number[0] == '#':			# Hex number detected
+		# if int(number[1:], 16) < 0x10000:
+			# return int(number[1:], 16)
+	# else:
+		# printError("Invalid integer \'" + number + "\'")
+		# return -1
 
 # Check for valid address string or label
 # when a label is found create jump table entry
@@ -107,26 +132,21 @@ def processInteger2(number):
 def process_address(address_string, instruction_type):
 	# We need to know the current address
 	global address
-
-	if address_string.isdecimal() == True:	# Decimal address detected
-		if int(address_string) < 0x1000:
-			return int(address_string)
-	elif address_string[0] == '#':			# Hex address detected
-		if int(address_string[1:], 16) < 0x1000:
-			return int(address_string[1:], 16)
-	else:									# Search for label
-			if labelValid(address_string) == True:
-				# A valid label name is found so store in jump table
-				table_entry = []
-				table_entry.append(address)
-				table_entry.append(address_string) # label name
-				table_entry.append(instruction_type)			
-				jump_table.append(table_entry)
-				return 0
-			else:
-				printError("Invalid label name")	
-				return -1
-	return
+	
+	if labelValid(address_string) == True:
+		# A valid label name is found so store in jump table
+		table_entry = []
+		table_entry.append(address)
+		table_entry.append(address_string) # label name
+		table_entry.append(instruction_type)			
+		jump_table.append(table_entry)
+		return 0
+	else:
+		check_number = processNumber(address_string, len(address_string))		
+		if check_number >= 0:		# Valid number is found
+			return check_number
+		else:						# No valid number found
+			return -1
 	
 # Fill in all the jump statements that utilise labels
 def fillJumps():
@@ -143,6 +163,9 @@ def fillJumps():
 		# Fill in rom with instruction + label address
 		if ins_type == 'jp': 		# jp 1NNN
 			nibble1 = 0x10
+		elif ins_type == 'jpv':		# jp Vx, nnn - BNNN
+			nibble1 = 0xB0
+			label_addr += entry[3]  # add the offset
 		elif ins_type == 'call':	# call 2NNN
 			nibble1 = 0x20
 		elif ins_type == 'seti':	# call ANNN
@@ -158,6 +181,8 @@ def fillJumps():
 
 # Print error message + line number
 def printError(error_text):
+	global error_count
+	error_count += 1
 	print("\tError on line " + str(line_number) + ": " + error_text) 
 	return
 	
@@ -235,9 +260,16 @@ for line in infile.readlines():
 		params[i] = params[i].strip()
 	
 	# Process the instruction
-	if instruction == 'dw':		# dw nnnn - Define word - Writes 2 bytes to hex file
-		byte1 = processInteger2(params[0]) >> 8
-		byte2 = processInteger2(params[0]) & 0xFF
+	if instruction == 'db':		# db nn - Define byte - Writes single byte to hex file
+		byte1 = processNumber(params[0],1)
+		rom.append(byte1)	
+		# Increment address counter - 
+		# WARNING, WHEN USING DB ENSURE THAT AN EVEN NUMBER OF
+		# BYTES ARE USED, OTHERWISE HEX FILE WILL BE MISALIGNED!
+		address += 1
+	elif instruction == 'dw':		# dw nnnn - Define word - Writes 2 bytes to hex file
+		byte1 = processNumber(params[0],2) >> 8
+		byte2 = processNumber(params[0],2) & 0xFF
 		writeIns(byte1, byte2)
 	elif instruction == 'sys':	# sys - Not used as yet, nnn is ignored - 0NNN
 		byte1 = 0x00
@@ -251,8 +283,15 @@ for line in infile.readlines():
 		byte1 = 0x00
 		byte2 = 0xEE
 		writeIns(byte1, byte2)
-	elif instruction == 'jp':		# jp nnn - Jump to address nnn - 1NNN
-		nnn = process_address(params[0],'jp')
+	elif instruction == 'jp':		
+		if len(params) == 1:  	# jp nnn - Jump to address nnn - 1NNN
+			nnn = process_address(params[0],'jp')
+			nibble1 = 0x10
+		elif len(params) == 2:	# jp V0, nnn - Jump to address Vo + nnn - BNNN
+			vxreg = int(params[0].strip('v'),16)
+			nnn = process_address(params[1],'jpv') + vreg
+			nibble1 = 0xB0
+
 		if nnn == -1: # Error
 			printError("Invalid address or label")
 		elif nnn == 0: # Label is found so leave instruction blank
@@ -260,14 +299,9 @@ for line in infile.readlines():
 			byte2 = 0
 			writeIns(byte1, byte2)
 		else: 		# Address is found so write the bytes
-			byte1 = 0x10 + (nnn >> 8)
+			byte1 = nibble1 + (nnn >> 8)
 			byte2 = nnn & 0xFF
 			writeIns(byte1, byte2)
-#	elif instruction == 'jmpv':	# jp V0, nnn - Jump to address nnn + V0 - BNNN
-#		nnn = int(params[0],16)
-#		byte1 = 0xB0 + (nnn >> 8)
-#		byte2 = nnn & 0xFF
-#		writeIns(byte1, byte2)
 	elif instruction == 'call':	# call nnn - Call subroutine at address nnn - 2NNN
 		nnn = process_address(params[0],'call')
 		if nnn == -1: # Error
@@ -289,7 +323,7 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		else:	# se vx, nn - Skip next instruction if vx equals nn - 3XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processInteger(params[1])
+			nn = processNumber(params[1],1)
 			byte1 = 0x30 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
@@ -302,7 +336,7 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		else:	# sne vx, nn - Skip next instruction if vx does not equal nn - 4XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processInteger(params[1])
+			nn = processNumber(params[1],1)
 			byte1 = 0x40 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
@@ -342,7 +376,7 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		elif params[0][0] == 'v' and params[1][0] != 'v': # ld Vx, nn - Sets Vx to nn - 6XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processInteger(params[1])
+			nn = processNumber(params[1],1)
 			byte1 = 0x60 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
@@ -384,23 +418,23 @@ for line in infile.readlines():
 				byte2 = nnn & 0xFF
 				writeIns(byte1, byte2)
 	elif instruction == 'add':	# There are 2 different instructions (add vx,vy and add vx,nn)	
-		if params[1][0] == 'v':	# add vx, vy - Vx = vx + vy. vf = carry flag - 8XY4
+		if params[0][0] == 'v' and params[1][0] == 'v':		# add vx, vy - Vx = vx + vy. vf = carry flag - 8XY4
 			vxreg = int(params[0].strip('v'),16)
 			vyreg = int(params[1].strip('v'),16)
 			byte1 = 0x80 + vxreg
 			byte2 = (vyreg << 4) + 0x04
 			writeIns(byte1, byte2)
-		else:	# add vx, nn - Add nn to vx - 7XNN
+		elif params[0][0] == 'v' and params[1][0] != 'v':	# add vx, nn - Add nn to vx - 7XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processInteger(params[1])
+			nn = processNumber(params[1],1)
 			byte1 = 0x70 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
-#	elif instruction == 'add':	# add I, Vx - Increment Vx by I - FX1E
-#		vreg = int(params[0].strip('v'),16)
-#		byte1 = 0xF0 + vreg
-#		byte2 = 0x1E
-#		writeIns(byte1, byte2)	
+		elif params[0] == 'i' and params[1][0] != 'v': 		# add I, Vx - Increment Vx by I - FX1E	
+			vreg = int(params[1].strip('v'),16)
+			byte1 = 0xF0 + vreg
+			byte2 = 0x1E
+			writeIns(byte1, byte2)	
 	elif instruction == 'or':	# or vx, vy - vx = vx or vy - 8XY1
 		vxreg = int(params[0].strip('v'),16)
 		vyreg = int(params[1].strip('v'),16)
@@ -443,7 +477,7 @@ for line in infile.readlines():
 		writeIns(byte1, byte2)
 	elif instruction == 'rnd':	# rnd vx, nn - Set vx to random number anded with nn - CXNN
 		vreg = int(params[0].strip('v'),16)
-		nn = processInteger(params[1])
+		nn = processNumber(params[1],1)
 		byte1 = 0xC0 + vreg
 		byte2 = nn
 		writeIns(byte1, byte2)
@@ -475,6 +509,8 @@ for line in infile.readlines():
 		byte1 = 0xE0 + vreg
 		byte2 = 0xA1
 		writeIns(byte1, byte2)
+	else:
+		printError("Invalid instruction \"" + instruction + "\"")
 
 # Fill in the jump instructions with associated label addresses
 fillJumps()
@@ -488,12 +524,15 @@ if error_count == 0:
 	for x in range(0,len(rom)-1,2):
 		writeBytes(rom[x],rom[x+1])
 
+	# Close outfile
+	outfile.close()
+		
 	# We are done!
 	print("\tAssembly complete")
 else:
 	# Errors occured so 
 	print("\t" + str(error_count) + " error(s) occurred")
 
-# Close files
+# Close infile
 infile.close()
-outfile.close()
+
