@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 
-# C8 Assembler Program by Craig Brennan
+# C8 Assembler Program
+# Craig Brennan
+# mail@cbrennan.space
 
-# Under construction! To be added:
-# = definitions
+# To be added:
 # Error checking
+# validate command line
+# detect options/align
 
-# How labels are processed:
-# Loop through the file and process instructions
-# when labels are found: record address, instruction type and label name
-# Loop through file again and record all label addresses
-# Loop through used labels and insert instruction with label address
-# If there is a label with no address an error is raised
-
-CONST_VERSION = 1.4
+CONST_VERSION = 1.5
 
 import sys
 
@@ -35,27 +31,69 @@ def writeBytes(byte1, byte2):
 	outfile.write(bytes([byte1,byte2]))
 	return
 	
+# Look for a constant definition and process it if found
+# return 1 if found, 0 if not found and -1 on error
+def checkForConstant(line_data):
+	# Look for constants defined using 'EQU' or '='
+	equ_count = line_data.count(' equ ')
+	equ2_count = line_data.count(' = ')	
+	if equ_count + equ2_count > 1:
+		printError("EQU or = can only be used once per line")
+		return -1
+	elif equ_count + equ2_count == 1:
+		const_split = line_data.split()
+		for item in const_split:	# remove spaces
+			item = item.strip()
+		if (const_split[1] == 'equ' or const_split[1] == '=') and len(const_split) == 3:
+			const_number = processNumber(const_split[2],3)
+			if const_number != -1:
+				defineConstant(const_split[0],const_number)
+				return 1
+			else:
+				printError("Invalid constant value")
+				return -1
+		else:
+			printError("Too many parameters for constant definition")
+			return -1
+	return 0
+	
+# Function to validate and define a constant
+def defineConstant(const_name,const_value):
+	# Check if the constant name is valid
+	# Must contain only alphanumic chars, _ and -
+	# Cannot begin with number
+	if labelValid(const_name) == True:
+		if const_name in assembler_constants: 	# Check if constant aready exists
+			printError("Constant " + const_name + " already exists!")
+		else: 						# Add new constant to dictionary			
+			assembler_constants[const_name] = const_value
+	else:
+		printError("Invalid constant name, cannot begin with a number or contain invaid characters")
+	return
+	
+# How labels are processed:
+# Loop through the file and process instructions
+# when labels are found: record address, instruction type and label name
+# Loop through recorded labels and insert instruction with label address
+# If there is a label with no address an error is raised
+	
 # Function to validate and define a label
 def defineLabel(label_name):
 	# Check if the label name is valid
 	# Must contain only alphanumic chars, _ and -
 	# Cannot begin with number
-	test_string = label_name.replace('-','')
-	test_string = test_string.replace('_','')
-	if test_string.isalnum() == True:
-		if test_string[0].isalpha() == True:
-			if label_name in labels: 	# Check if label aready exists
-				printError("Label " + label_name + " already exists!")
-			else: 						# Add new label to label dictionary			
-				labels[label_name] = address
-		else:
-			printError("Invalid label name, cannot begin with number")
+	if labelValid(label_name) == True:
+		if label_name in labels: 	# Check if label aready exists
+			printError("Label " + label_name + " already exists!")
+		else: 						# Add new label to label dictionary			
+			labels[label_name] = address
 	else:
-		printError("Label name contains invalid characters")	
+		printError("Invalid label name, cannot begin with a number or contain invaid characters")
 	return
 
 # Function to validate label
 # Return True if valid name, false otherwise
+# also used to validate constant definitions
 def labelValid(label_name):
 	# Check if the label name is valid
 	# Must contain only alphanumic chars, _ and -
@@ -72,7 +110,7 @@ def labelValid(label_name):
 	return
 
 # Input - number(str): String that is a hex, binary or decimal integer
-# bytes (int): size of integer in bytes 
+# 		  bytes (int): size of integer in bytes 
 # Hex numbers begin with #, binary begins with $ and decimal is digits only
 # return value is integer value of input string
 # returns -1 on error
@@ -96,32 +134,20 @@ def processNumber(number,bytes):
 		printError("Invalid integer \'" + number + "\'")
 		return -1
 		
-# Input is a string that is a hex or decimal integer (0-255)
-# Hex numbers begin with # and decimal is digits only
-# return value is integer value of input string
-# returns -1 on error
-# def processNumber(number):
-	# if number.isdecimal() == True:	# Decimal number detected
-		# if int(number) < 0x100:
-			# return int(number)
-	# elif number[0] == '#':			# Hex number detected
-		# if int(number[1:], 16) < 0x100:
-			# return int(number[1:], 16)
-	# else:
-		# printError("Invalid integer \'" + number + "\'")
-		# return -1
-		
-# Temp used for dw instruction
-# def processNumber2(number):
-	# if number.isdecimal() == True:	# Decimal number detected
-		# if int(number) < 0x10000:
-			# return int(number)
-	# elif number[0] == '#':			# Hex number detected
-		# if int(number[1:], 16) < 0x10000:
-			# return int(number[1:], 16)
-	# else:
-		# printError("Invalid integer \'" + number + "\'")
-		# return -1
+# Input - n_string(string): Can be either constant name or a number
+# 		      nibbles(int): Int size measured in nibbles (4 bits)
+# output - Constant value or number value
+def processN(n_string,bytes):
+		# Search constant dictionary for string
+		if n_string in assembler_constants:
+			return assembler_constants.get(n_string)
+		else:	# No constant found so look for number
+			check_number = processNumber(n_string, bytes)		
+			if check_number >= 0:		# Valid number is found
+				return check_number
+			else:						# No valid number found
+				printError("Invalid number or constant \'" + n_string + "\'")
+				return -1
 
 # Check for valid address string or label
 # when a label is found create jump table entry
@@ -200,12 +226,18 @@ address = 0x200
 # Count number of errors
 error_count = 0
 
+# List of parameters in a line of code
+params = []
+
 # Dictionary used to store label names and addresses
 labels = {}
 
 # List of all instructions which use labels
 # Structure: ('id,('address_hex_nnn','label_name','instruction_type'))
 jump_table = []
+
+# Dictionary used to store assembler constants (equ/= definitions)
+assembler_constants = {}
 
 # Store file names from command line
 filename_in = str(sys.argv[1])
@@ -229,9 +261,10 @@ for line in infile.readlines():
 	
 	# Strip away comments
 	data = data.split(';')[0]
+	data = data.strip()
 	
 	# If line is empty then move on
-	if len(data.strip()) == 0: continue
+	if len(data) == 0: continue
 	
 	# Make line lowercase to remove any case issues
 	data = data.lower()
@@ -248,12 +281,24 @@ for line in infile.readlines():
 	elif label_count == 1:
 		defineLabel(data.split(':')[0])
 		continue
-
-	# Separate instruction from parameters
-	instruction = data.split(' ',1)[0]
 	
-	# Find parameters (separated by commas)
-	params = data.split(' ',1)[1].split(',')
+	# Look for constants defined using 'EQU' or '='
+	const_check = checkForConstant(data)
+	if const_check == 1 or const_check == -1:
+		continue
+	
+	#Separate instruction from parameters
+	space_count = data.count(' ')
+
+	# Find the instruction
+	if space_count == 0:
+		instruction = data
+	elif space_count > 0:
+		first_space_split = data.split(' ',1)
+		instruction = first_space_split[0]	
+		param_string = first_space_split[1].strip()
+		# Find parameters (separated by commas)
+		params = param_string.split(',')
 	
 	# Get rid of any pesky spaces, tabs, etc
 	for i in range(len(params)):
@@ -261,23 +306,27 @@ for line in infile.readlines():
 	
 	# Process the instruction
 	if instruction == 'db':		# db nn - Define byte - Writes single byte to hex file
-		byte1 = processNumber(params[0],1)
-		rom.append(byte1)	
-		# Increment address counter - 
 		# WARNING, WHEN USING DB ENSURE THAT AN EVEN NUMBER OF
 		# BYTES ARE USED, OTHERWISE HEX FILE WILL BE MISALIGNED!
-		address += 1
+		# Loop through params as multiple words can be used on a single line
+		for b in params:
+			byte1 = processN(b,1)
+			rom.append(byte1)	
+			# Increment address counter - 
+			address += 1
 	elif instruction == 'dw':		# dw nnnn - Define word - Writes 2 bytes to hex file
-		byte1 = processNumber(params[0],2) >> 8
-		byte2 = processNumber(params[0],2) & 0xFF
-		writeIns(byte1, byte2)
+		# Loop through params as multiple words can be used on a single line
+		for w in params:
+			byte1 = processN(w,2) >> 8
+			byte2 = processN(w,2) & 0xFF
+			writeIns(byte1, byte2)
 	elif instruction == 'sys':	# sys - Not used as yet, nnn is ignored - 0NNN
 		byte1 = 0x00
 		byte2 = 0x00
 		writeIns(byte1, byte2)
 	elif instruction == 'cls':	# cls - Clears the display - 00E0
 		byte1 = 0x00
-		byte2 = 0x0E
+		byte2 = 0xE0
 		writeIns(byte1, byte2)
 	elif instruction == 'ret':	# ret - Return from subroutine - 00EE
 		byte1 = 0x00
@@ -323,7 +372,7 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		else:	# se vx, nn - Skip next instruction if vx equals nn - 3XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processNumber(params[1],1)
+			nn = processN(params[1],1)
 			byte1 = 0x30 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
@@ -336,7 +385,7 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		else:	# sne vx, nn - Skip next instruction if vx does not equal nn - 4XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processNumber(params[1],1)
+			nn = processN(params[1],1)
 			byte1 = 0x40 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
@@ -376,7 +425,7 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		elif params[0][0] == 'v' and params[1][0] != 'v': # ld Vx, nn - Sets Vx to nn - 6XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processNumber(params[1],1)
+			nn = processN(params[1],1)
 			byte1 = 0x60 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
@@ -426,11 +475,11 @@ for line in infile.readlines():
 			writeIns(byte1, byte2)
 		elif params[0][0] == 'v' and params[1][0] != 'v':	# add vx, nn - Add nn to vx - 7XNN
 			vreg = int(params[0].strip('v'),16)
-			nn = processNumber(params[1],1)
+			nn = processN(params[1],1)
 			byte1 = 0x70 + vreg
 			byte2 = nn
 			writeIns(byte1, byte2)
-		elif params[0] == 'i' and params[1][0] != 'v': 		# add I, Vx - Increment Vx by I - FX1E	
+		elif params[0] == 'i' and params[1][0] == 'v': 		# add I, Vx - Increment Vx by I - FX1E	
 			vreg = int(params[1].strip('v'),16)
 			byte1 = 0xF0 + vreg
 			byte2 = 0x1E
@@ -477,7 +526,7 @@ for line in infile.readlines():
 		writeIns(byte1, byte2)
 	elif instruction == 'rnd':	# rnd vx, nn - Set vx to random number anded with nn - CXNN
 		vreg = int(params[0].strip('v'),16)
-		nn = processNumber(params[1],1)
+		nn = processN(params[1],1)
 		byte1 = 0xC0 + vreg
 		byte2 = nn
 		writeIns(byte1, byte2)
