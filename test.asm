@@ -12,16 +12,16 @@ y_coord = #d
         jp      START
 		
 EQUALS:
-        db      0          	  ; 0x202 - Sprite for = character
-		db		$1111....	  ; *
+        db      0             ; 0x202 - Sprite for = character
+        db      $1111....     ; *
         db      0             ; *
         db      $1111....     ; *
 BCD:
-        dw      0, 0	      ; Store BCD value here
+        dw      0, 0          ; Store BCD value here
 
 START:
         ld      va, number    ; our number in va is c8!
-		ld		v0, va		  ; copy number to v0
+        ld      v0, va        ; copy number to v0
         shr     v0            ; shift v0 right by 4 places
         shr     v0            ; *
         shr     v0            ; *
@@ -32,7 +32,7 @@ START:
         ld      f, v0         ; load sprite for 'c' 
         drw     v3, v4, 5     ; draw the for 'c'
 
-		ld		v0, va		  ; copy number to v0
+        ld      v0, va        ; copy number to v0
         ld      v5, #f        ; load 0x0f into v5 to use as mask
         and     v0, v5        ; perform and operation to reveal '8'
         add     v3, 5         ; update x coordinate for second digit
@@ -43,7 +43,7 @@ START:
         ld      i, EQUALS     ; set index register to start of '=' sprite
         drw     v3, v4, 4     ; draw '=' sprite
 
-		ld		v0, va		  ; copy number to v0
+        ld      v0, va        ; copy number to v0
         ld      i, BCD        ; set index register to BCD address
         ld      b, v0         ; convert number to BCD
         ld      v2, [i]       ; load BCD values into v0 to v2
