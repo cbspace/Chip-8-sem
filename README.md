@@ -1,21 +1,37 @@
 # Chip-8-sem
 Chip-8 Assembler in Python
-Program usage is "[python3] c8sem.py infile.asm outfile.c8"
+Program usage is "python3 c8sem.py infile.asm outfile.c8"
 
 Notes:
-1. The langauge structure is "instruction [operand1], [operand2], [operand3]". Operands can be memory addresses, labels, V registers, I register, [I] address or immediate values. V registers are denoted by a v followed by the register number (i.e. "v0").
-2. The program supports hex and decimal integers. Hex is prefixed with #
+1. The langauge structure is "instruction [operand1], [operand2], [operand3]". Operands can be memory addresses, labels, V registers, I register, [I] address or immediate values. V registers are denoted by a V followed by the register number (i.e. "v0").
+2. The program supports hex, decimal and binary integers. Hex is prefixed with # and binary is prefixed with $
 3. Label names, instructions and operands are not case sensitive
 
 Label Names:
 - Must contain only alpanumeric characters, '_' or '-' characters
 - Cannot begin with a number (a-z, _, or - only)
 
+Constants:
+- Constant values can be defined using the = character or 'EQU' keyword
+- Naming rules are the same as label names (above)
+- Values can be integer, hex(#), or binary ($)
+e.g. BALL_SPEED = 5
+     WALL_HEIGHT EQU 10
+
+Define Words or Bytes:
+DB nn - Define Byte define a 8 bit value to be written to ROM
+DW nnnn - Define Word, define a 16 bit value to be written to ROM
+Usage: nn can be integer, hex or binary value and multiple values
+       can be written to a line useing a comma to separate values
+	   eg. DW #ffff, #00ff, #ffff
+Note: Take care when using DB as writing an odd number of bytes will misalign all follwing 
+      instructions in the ROM!
+
 Opcodes and Usage: 
 
 Hex - Instruction - Explanation and Usage
 
-0NNN - SYS - Calls RCA 1802 program at address NNN. Not implemented as yet.
+0NNN - SYS - Calls RCA 1802 program at address NNN
 
 00E0 - CLS - Clears the screen.
 
