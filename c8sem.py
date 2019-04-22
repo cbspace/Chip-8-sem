@@ -105,7 +105,7 @@ def labelValid(label_name):
 	return
 
 # Input - number(str): String that is a hex, binary or decimal integer
-# 		  bits (int): size of integer in bits 
+#       - bits (int): size of integer in bits 
 # Hex numbers begin with #, binary begins with $ and decimal is digits only
 # return value is integer value of input string
 # returns -1 on error

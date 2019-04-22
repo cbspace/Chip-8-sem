@@ -14,15 +14,15 @@ Label Names:
 Constants:
 - Constant values can be defined using the = character or 'EQU' keyword
 - Naming rules are the same as label names (above)
-- Values can be integer, hex(#), or binary ($)
-- e.g. BALL_SPEED = 5
--      WALL_HEIGHT EQU 10
+- Values can be integer, hex(#), or binary ($). For example:
+- BALL_SPEED = 5
+- WALL_HEIGHT EQU 10
 
 Define Words or Bytes:
 - DB nn - Define Byte define a 8 bit value to be written to ROM
 - DW nnnn - Define Word, define a 16 bit value to be written to ROM
-- Usage: nn can be integer, hex or binary value and multiple values can be written to a line useing a comma to separate values
-- eg. DW #ffff, #00ff, #ffff
+- Usage: nn can be integer, hex or binary value and multiple values can be written to a line useing a comma to separate values. For example:
+- DW #ffff, #00ff, #ffff
 - Note: Take care when using DB as writing an odd number of bytes will misalign all follwing instructions in the ROM!
 
 Opcodes and Usage: 
