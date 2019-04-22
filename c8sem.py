@@ -123,7 +123,8 @@ def processNumber(number,bits):
 			printError("Number must not be larger than " + str(bits) + " bits (" + "#%0.2X" % 2**bits + ")")
 			return -1
 	elif number[0] == '$':          # Binary number detected
-		binary_string = number[1:].replace('.','0') # replace '.'s with zeros
+		# replace '.'s with zeros
+		binary_string = number[1:].replace('.','0')
 		try:
 			binary_integer = int(binary_string,2)
 		except:
@@ -139,7 +140,7 @@ def processNumber(number,bits):
 		return -1
 		
 # Input - n_string(string): Can be either constant name or a number
-#         bits(int): Int size measured in bits
+#       - bits(int): Int size measured in bits
 # output - Constant value or number value
 def processN(n_string,bits):
 		# Search constant dictionary for string
@@ -393,8 +394,7 @@ for line in infile.readlines():
 			byte2 = nn
 			writeIns(byte1, byte2)
 	elif instruction == 'ld': # ld - load
-		#	There are 10 different addressing modes
-		# for the LD instruction:
+		# There are 10 different addressing modes for the LD instruction:
 		# V - load or store data to V register
 		#	ld Vx, nn - Load immediate value (byte) to Vx - 6XNN
 		#	ld Vx, Vy - Load value of Vx into Vy - 8XY0
@@ -577,7 +577,7 @@ if error_count == 0:
 	# We are done!
 	print("\tAssembly complete")
 else:
-	# Errors occured so 
+	# Errors occured
 	print("\t" + str(error_count) + " error(s) occurred")
 
 # Close infile
