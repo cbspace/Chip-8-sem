@@ -1,9 +1,10 @@
-# Chip-8-sem
-Chip-8 Assembler in Python
-Program usage is "python3 c8sem.py SourceFilePath [RomFilePath]"
-SourceFilePath: Chip-8 source file, usually a .src file extension
-[RomFilePath]: Optional parameter used to specify output ROM file name. If omitted, the ROM file name is the input file name with .c8 extension
-Example Usage: c8sem.py source/test.src roms/test_rom.c8
+# Chip-8-sem #
+Chip-8 Assembler in Python3
+
+Program usage is "python3 c8sem.py SourceFilePath [RomFilePath]"<br>
+SourceFilePath: Chip-8 source file, usually a .src file extension<br>
+[RomFilePath]: Optional parameter used to specify output ROM file name. If omitted, the ROM file name is the input file name with .c8 extension<br>
+Example Usage: c8sem.py source/test.src roms/test_rom.c8<br>
 
 Notes:
 1. The langauge structure is "instruction [operand1], [operand2], [operand3]". Operands can be memory addresses, labels, V registers, I register, [I] address or immediate values. V registers are denoted by a V followed by the register number (i.e. "v0").
