@@ -4,7 +4,7 @@
 # Craig Brennan
 # mail@cbrennan.space
 
-CONST_VERSION = 1.6
+CONST_VERSION = 1.7
 
 import sys
 
@@ -201,6 +201,8 @@ def fillJumps():
 			nibble1 = 0x20
 		elif ins_type == 'seti':	# set I to nnn - ANNN
 			nibble1 = 0xA0
+		elif ins_type == 'sys':		# call system function at nnn - 0NNN
+			nibble1 = 0x00 
 		else:
 			printError('Invalid instruction found in jump table \'' + ins_type + '\'')
 		
@@ -326,9 +328,18 @@ for line in infile.readlines():
 			byte2 = processN(w,16) & 0xFF
 			writeIns(byte1, byte2)
 	elif instruction == 'sys': # sys - Not used as yet, nnn is ignored - 0NNN
-		byte1 = 0x00
-		byte2 = 0x00
-		writeIns(byte1, byte2)
+		nnn = processAddress(params[0],'sys')
+		nibble1 = 0x00
+		if nnn == -1: # Error
+			printError("Invalid address or label")
+		elif nnn == 0: # Label is found so leave instruction blank
+			byte1 = 0
+			byte2 = 0
+			writeIns(byte1, byte2)
+		else:          # Address is found so write the bytes
+			byte1 = nibble1 + (nnn >> 8)
+			byte2 = nnn & 0xFF
+			writeIns(byte1, byte2)
 	elif instruction == 'cls': # cls - Clears the display - 00E0
 		byte1 = 0x00
 		byte2 = 0xE0
