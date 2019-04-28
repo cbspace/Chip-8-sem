@@ -327,7 +327,7 @@ for line in infile.readlines():
 			byte1 = processN(w,16) >> 8
 			byte2 = processN(w,16) & 0xFF
 			writeIns(byte1, byte2)
-	elif instruction == 'sys': # sys - Not used as yet, nnn is ignored - 0NNN
+	elif instruction == 'sys': # sys - Calls RCA 1802 program at address nnn - 0NNN
 		nnn = processAddress(params[0],'sys')
 		nibble1 = 0x00
 		if nnn == -1: # Error
