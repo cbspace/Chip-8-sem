@@ -8,8 +8,8 @@
     max_numbers_x   =       6           ; how many numbers in a row
     max_numbers_y   =       5           ; number of rows
 
-    x_coord         =       0
-    y_coord         =       1
+    x_coord         =       0           ; start x coordinate
+    y_coord         =       1           ; start y coordinate
 
 ; programs begin at 200
 ; 0x200
@@ -18,12 +18,12 @@
 ; ----------   Sprites   -------------
         
 HASH:
-        db      $.1.1....     ; Sprite for # character
+        db      $.1.1....     ; Sprite for # character (not used as yet)
         db      $11111...     ; *
         db      $.1.1....     ; *
         db      $11111...     ; *
         db      $.1.1....     ; *
-        db      0
+        db      0             ; needed to keep alignment of rom
 BCD:
         dw      0, 0          ; Store BCD value here
         
@@ -70,7 +70,7 @@ ROW_LOOP:
 DRAW_ROW:   
         rnd     v5, mask            ; generate random value from 0 to 63
         ld      v6, v5              ; copy number to v6
-        call    DIVIDE_NUMBER       ; make sure the number is in the corrent range
+        call    DIVIDE_NUMBER       ; make sure the number is in the correct range
         add     v5, 1               ; increment by 1 to get correct range
         ld      i, BCD              ; set i reg to point to BCD memory
         ld      b, v5               ; convert to BCD        
