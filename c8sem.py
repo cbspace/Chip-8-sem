@@ -4,7 +4,7 @@
 # Craig Brennan
 # mail@cbrennan.space
 
-CONST_VERSION = 1.7
+CONST_VERSION = 1.8
 
 import sys
 
@@ -189,34 +189,44 @@ def fillJumps():
 		ins_type = entry[2]
 		
 		# Search label dictionary for current label
-		label_addr = labels.get(label_name)
-		
-		# Fill in rom with instruction + label address
-		if ins_type == 'jp': 		# jp nnn - 1NNN
-			nibble1 = 0x10
-		elif ins_type == 'jpv':		# jp Vx, nnn - BNNN
-			nibble1 = 0xB0
-			label_addr += entry[3]  # add the offset
-		elif ins_type == 'call':	# call 2NNN
-			nibble1 = 0x20
-		elif ins_type == 'seti':	# set I to nnn - ANNN
-			nibble1 = 0xA0
-		elif ins_type == 'sys':		# call system function at nnn - 0NNN
-			nibble1 = 0x00 
+		if label_name in labels:
+			label_addr = labels.get(label_name)
+			
+			# Fill in rom with instruction + label address
+			if ins_type == 'jp': 		# jp nnn - 1NNN
+				nibble1 = 0x10
+			elif ins_type == 'jpv':		# jp Vx, nnn - BNNN
+				nibble1 = 0xB0
+				label_addr += entry[3]  # add the offset
+			elif ins_type == 'call':	# call 2NNN
+				nibble1 = 0x20
+			elif ins_type == 'seti':	# set I to nnn - ANNN
+				nibble1 = 0xA0
+			elif ins_type == 'sys':		# call system function at nnn - 0NNN
+				nibble1 = 0x00 
+			else:
+				printError('Invalid instruction found in jump table \'' + ins_type + '\'')
+			
+			# Write data to rom
+			byte1 = nibble1 + (label_addr >> 8)
+			byte2 = label_addr & 0xFF
+			rom[addr-0x200] = byte1
+			rom[addr-0x200+1] = byte2
 		else:
-			printError('Invalid instruction found in jump table \'' + ins_type + '\'')
-		
-		# Write data to rom
-		byte1 = nibble1 + (label_addr >> 8)
-		byte2 = label_addr & 0xFF
-		rom[addr-0x200] = byte1
-		rom[addr-0x200+1] = byte2
+			printError("Label '" + label_name + "' used but not defined", False)
 
 # Print error message + line number
-def printError(error_text):
+def printError(error_text, show_line_number = True):
+
+	# Increase error count
 	global error_count
 	error_count += 1
-	print("\tError on line " + str(line_number) + ": " + error_text) 
+	
+	# Print error message
+	if show_line_number == True:
+		print("\tError on line " + str(line_number) + ": " + error_text)
+	else:
+		print("\tError: " + error_text)
 	return
 	
 # --------------------------------- Variables ----------------------------------
