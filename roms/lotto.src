@@ -3,30 +3,30 @@
 ; By Craig Brennan
 
 ; Some constant definitions
-	mask 			= 		#ff				; Mask value, set to max of 255
-	max_number		= 		44				; numbers 1 to 45
-	max_numbers_x	=		6				; how many numbers in a row
-	max_numbers_y	=		5				; number of rows
-	
-	x_coord 		= 		0
-	y_coord 		= 		1
+    mask            =       #ff         ; Mask value, set to max of 255
+    max_number      =       44          ; numbers 1 to 45
+    max_numbers_x   =       6           ; how many numbers in a row
+    max_numbers_y   =       5           ; number of rows
+
+    x_coord         =       0
+    y_coord         =       1
 
 ; programs begin at 200
 ; 0x200
         jp      START
 
 ; ----------   Sprites   -------------
-		
+        
 HASH:
         db      $.1.1....     ; Sprite for # character
         db      $11111...     ; *
         db      $.1.1....     ; *
         db      $11111...     ; *
         db      $.1.1....     ; *
-		db		0
+        db      0
 BCD:
         dw      0, 0          ; Store BCD value here
-		
+        
 ; The program draws 6 random numbers from 1 to 45 and displays them on the screen
 ; For each number, the following process is followed:
 ; 1. A random value from 0 to 255 is generated
@@ -53,52 +53,52 @@ BCD:
 ; Vf - Borrow flag
 
 START:
-        ld      v4, y_coord     	; initial y coordinate for sprite		
-		ld		ve, 0				; ve will contain y loop counter
+        ld      v4, y_coord         ; initial y coordinate for sprite       
+        ld      ve, 0               ; ve will contain y loop counter
 
 ROW_LOOP:
-		ld      v3, x_coord     	; initial x coordinate for sprite
-		ld		vd, 0				; vd will contain x loop counter
-		call 	DRAW_ROW			; draw a row of numbers
-		add		v4, 6				; increment y coord
-		add		ve, 1				; increment y loop counter
-		ld		vc, max_numbers_y	; load max y numbers
-		sne		ve, vc				; test if max y numbers reached
-		jp		HANG				; program is finished
-		jp 		ROW_LOOP			; draw another row
-		
-DRAW_ROW:	
-		rnd		v5, mask			; generate random value from 0 to 63
-		ld		v6, v5				; copy number to v6
-		call	DIVIDE_NUMBER		; make sure the number is in the corrent range
-		add 	v5, 1				; increment by 1 to get correct range
-		ld		i, BCD				; set i reg to point to BCD memory
-		ld		b, v5				; convert to BCD		
-        ld      v2, [i]       		; load BCD values into v0 to v2
-        ld      f, v1           	; load sprite for middle digit 
-        drw     v3, v4, 5       	; draw the for middle digit
-		add     v3, 5         		; update x coordinate for second digit
-        ld      f, v2         		; load the sprite for low digit
-        drw     v3, v4 ,5     		; draw low digit
-		add		v3, 6				; increment x coordinate
-		add		vd, 1				; increment x loop counter
-		ld		vc, max_numbers_x	; load max x
-		sne		vd, vc				; test if max reached
-		ret
-		jp		DRAW_ROW
-		
+        ld      v3, x_coord         ; initial x coordinate for sprite
+        ld      vd, 0               ; vd will contain x loop counter
+        call    DRAW_ROW            ; draw a row of numbers
+        add     v4, 6               ; increment y coord
+        add     ve, 1               ; increment y loop counter
+        ld      vc, max_numbers_y   ; load max y numbers
+        sne     ve, vc              ; test if max y numbers reached
+        jp      HANG                ; program is finished
+        jp      ROW_LOOP            ; draw another row
+        
+DRAW_ROW:   
+        rnd     v5, mask            ; generate random value from 0 to 63
+        ld      v6, v5              ; copy number to v6
+        call    DIVIDE_NUMBER       ; make sure the number is in the corrent range
+        add     v5, 1               ; increment by 1 to get correct range
+        ld      i, BCD              ; set i reg to point to BCD memory
+        ld      b, v5               ; convert to BCD        
+        ld      v2, [i]             ; load BCD values into v0 to v2
+        ld      f, v1               ; load sprite for middle digit 
+        drw     v3, v4, 5           ; draw the for middle digit
+        add     v3, 5               ; update x coordinate for second digit
+        ld      f, v2               ; load the sprite for low digit
+        drw     v3, v4 ,5           ; draw low digit
+        add     v3, 6               ; increment x coordinate
+        add     vd, 1               ; increment x loop counter
+        ld      vc, max_numbers_x   ; load max x
+        sne     vd, vc              ; test if max reached
+        ret
+        jp      DRAW_ROW
+        
 DIVIDE_NUMBER:
-		ld		vc, max_number		; load max number
-		sub		v6, vc				; subtract max_number
-		ld		vc, 0				; set vc to 0
-		sne		v6, vc				; test if number is 0
-		ld		vf, 0				; set the borrow flag for a 0 value
-		se		vf, 0				; test if borrow flag is set (0=borrow)
-		jp		DIVIDE_AGAIN		; perform the subtraction again
-		ret
-DIVIDE_AGAIN:		
-		ld		v5, v6				; store the new number in v5
-		jp		DIVIDE_NUMBER		; do it again
+        ld      vc, max_number      ; load max number
+        sub     v6, vc              ; subtract max_number
+        ld      vc, 0               ; set vc to 0
+        sne     v6, vc              ; test if number is 0
+        ld      vf, 0               ; set the borrow flag for a 0 value
+        se      vf, 0               ; test if borrow flag is set (0=borrow)
+        jp      DIVIDE_AGAIN        ; perform the subtraction again
+        ret
+DIVIDE_AGAIN:       
+        ld      v5, v6              ; store the new number in v5
+        jp      DIVIDE_NUMBER       ; do it again
 
 HANG:
-        jp      HANG           		; we are done so loop here forever   		
+        jp      HANG                ; we are done so loop here forever          
